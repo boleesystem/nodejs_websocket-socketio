@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client</title>
+  </head>
+  <body>
+    <!-- 메시지 폼 -->
+    <form name="publish">
+      <!-- name :  page 영역에서 중복되어 사용이 가능하며, action에 해당하는 페이지에 전달할 수 있는 파라미터로 사용(폼 서브밋시 서버에서 name 명으로 값을 가져올 수 있음) -->
+      <!-- id : page 안에서 중복으로 사용할 수 없으며, 주로 JavaScript에서 다루기 위해 지정(document.getElementById(id)를 통해서 해당 엘리먼트 Object를 가져올 수 있음) -->
+      <!-- value : 해당 태그의 값 -->
+      <input type="text" name="message" />
+      <input type="text" name="test" />
+      <input type="submit" value="send" />
+    </form>
+
+    <script>
+      let url = "ws://localhost:8080/ws";
+      let socket = new WebSocket(url);
+
+      // 폼에 있는 메세지 보내기
+      // Document.forms https://ko.javascript.info/form-elements
+      document.forms.publish.onsubmit = function () {
+        console.log("this.test.value는?", this.test.value); // 2번째 input 입력 박스
+        let outgoingMessage = this.message.value;
+        console.log("this.message.value는?", this.message.value); // 1번째 input 입력 박스
+        // ??? value 하나 담는데 왜 굳이 파람스를 쓴 거지(45줄에도 동일) => 확장성 고려해서
+        // 무현님 왈 뭔가 큰걸로 감싸는 경우는 다양한 정보를 담을라는거니까...
+        const obj = { type: "message", params: { value: outgoingMessage } };
+        console.log("obj는?", obj);
+        // JSON.stringify(value, replacer, space)란 무엇인가?
+        // https://steemit.com/kr-dev/@cheonmr/json-stringify
+        // https://www.daleseo.com/js-json/
+        // JSON.stringify(): JavaScript 객체를 JSON 문자열로 변환
+        // value(필수): JSON 문자열로 변환할 값이다.(배열, 객체, 또는 숫자, 문자 등이 될 수 있다.)
+        // replacer(선택): 함수 또는 배열이 될 수 있다. 이 값이 null 이거나 제공되지 않으면, 객체의 모든 속성들이 JSON 문자열 결과에 포함된다.
+        socket.send(JSON.stringify(obj));
+        return false;
+      };
+
+      // 들어오는 메세지 핸들링
+      socket.onmessage = function (event) {
+        console.log("event.data는?", event.data);
+        let incomingMessage = event.data;
+        showMessage(incomingMessage);
+      };
+
+      socket.onclose = (event) => console.log(`Closed ${event.code}`);
+
+      // dev에 메세지 더하기
+      function showMessage(message) {
+        // .createElement() : 자바스크립트를 이용하여 문서에 HTML 요소를 추가 https://www.codingfactory.net/10436
+        let messageElem = document.createElement("div");
+        // JSON.parse(): JSON 문자열을 JavaScript 객체로 변환
+        const obj = JSON.parse(message);
+        // +조성훈님+ 문단띄우기 div.innerHTML = '안녕 <br> 하세요'
+        // .textContent : 자바스크립트에서 엘리먼트 및 노드에 텍스트를 추가하거나 값을 가져올 수 있는 방법 중 하나
+        // https://webisfree.com/2020-03-07/[%EC%9E%90%EB%B0%94%EC%8A%A4%ED%81%AC%EB%A6%BD%ED%8A%B8]-textcontent-%EA%B7%B8%EB%A6%AC%EA%B3%A0-innertext-%EC%B0%A8%EC%9D%B4%EC%A0%90-%EC%95%8C%EC%95%84%EB%B3%B4%EA%B8%B0
+        messageElem.textContent = obj.params.value;
+        // getElementById : 태그에 있는 id 속성을 사용하여 해당 태그에 접근하여 하고 싶은 작업을 할 때 쓰는 함수 https://kyounghwan01.github.io/blog/JS/JSbasic/getElementById/
+
+        // append() : 콘텐츠를 선택된 요소 내부의 끝 부분에서 삽입 - <p>  중앙  여기에 값이들어감</p>
+        // prepend() : 콘텐츠를 선택한 요소 내부의 시작 부분에서 삽입 - <p>여기에 값이들어감  중앙  </p>
+        // => 그래서 새로운 채팅이 맨 앞부분에 추가된 거임
+        // after() : 선택한 요소 뒤에 콘텐츠 삽입 - <p>  중앙  </p>여기에 값이들어감
+        // before() : 선택된 요소 앞에 콘텐츠 삽입 - 여기에 값이들어감<p>  중앙  </p>
+        // https://solbel.tistory.com/370
+        // console.log("prepend(messageElem) 부분은?", prepend(messageElem));
+        document.getElementById("messages").prepend(messageElem); // ??? 출력값이 뭐지
+      };
+    </script>
+
+    <!-- 수신받을 메시지가 노출될 div ??? 왜 여기에 출력되는 거지 => script 부분에서 동작한 것이 여기에서 보이는 -->
+    <div id="messages"></div>
+  </body>
+</html>
+
+<!-- ************* 주석제거 버전 *************
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client</title>
+  </head>
+  <body>
+    <form name="publish">
+      <input type="text" name="message" />
+      <input type="text" name="test" />
+      <input type="submit" value="send" />
+    </form>
+
+    <script>
+      let url = "ws://localhost:8080/ws";
+      let socket = new WebSocket(url);
+
+      document.forms.publish.onsubmit = function () {
+        let outgoingMessage = this.message.value;
+        const obj = { type: "message", params: { value: outgoingMessage } };
+        socket.send(JSON.stringify(obj));
+        return false;
+      };
+
+      socket.onmessage = function (event) {
+        let incomingMessage = event.data;
+        showMessage(incomingMessage);
+      };
+
+      socket.onclose = (event) => console.log(`Closed ${event.code}`);
+
+      function showMessage(message) {
+        let messageElem = document.createElement("div");
+        const obj = JSON.parse(message);
+        messageElem.textContent = obj.params.value;
+        document.getElementById("messages").prepend(messageElem);
+      }
+    </script>
+
+    <div id="messages"></div>
+  </body>
+</html> -->
